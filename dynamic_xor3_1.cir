@@ -1,0 +1,274 @@
+* Caractérisation de la consommation dynamique - xor3_1
+.title Dynamic Power Characterization xor3_1
+
+* ============================================
+* Conditions de fonctionnement (PVT)
+* ============================================
+* Process: tt (typical-typical)
+.lib "~/.ciel/sky130A/libs.tech/ngspice/sky130.lib.spice" tt
+
+* Voltage: 1.8V (nominal)
+.param VDD_VAL = 1.8
+
+* Temperature: 25°C (nominal)
+.temp 25
+
+* ============================================
+* Paramètres de caractérisation
+* ============================================
+.param LOAD_CAP = 10f
+.param SLEW_TIME = 0.1n
+
+* ============================================
+* Inclusion des cellules standard
+* ============================================
+.include "~/.ciel/sky130A/libs.ref/sky130_fd_sc_hd/spice/sky130_fd_sc_hd.spice"
+
+* ============================================
+* Alimentations globales
+* ============================================
+.global VPWR VGND VNB VPB
+VVPWR VPWR 0 DC {VDD_VAL}
+VVGND VGND 0 DC 0
+VVNB VNB 0 DC 0
+VVPB VPB 0 DC {VDD_VAL}
+
+* ============================================
+* Instance de la cellule XOR3_1
+* ============================================
+X1 A B C VGND VNB VPB VPWR Y sky130_fd_sc_hd__xor3_1
+
+* ============================================
+* Capacité de charge sur la sortie
+* ============================================
+CL Y VGND {LOAD_CAP}
+
+* ============================================
+* PHASE 1: Mesure de la consommation statique
+* États stables pour établir la référence statique
+* ============================================
+VA A VGND PWL(
++ 0n     0
++ 20n    0
++ 21n    0
++ 40n    0
++ 41n    0
++ 60n    0
++ 61n    0
++ 80n    0
++ 81n    1.8
++ 100n   1.8
++ 101n   1.8
++ 120n   1.8
++ 121n   1.8
++ 140n   1.8
++ 141n   1.8
++ 160n   1.8
++ 161n   1.8
++ 200n   1.8
++ 201n   1.8
++ 250n   1.8
++ 251n   0
++ 300n   0
++ 301n   1.8
++ 350n   1.8
++ 351n   0
++ 400n   0
++ 401n   1.8
++ 450n   1.8
++ )
+
+VB B VGND PWL(
++ 0n     0
++ 20n    0
++ 21n    0
++ 40n    0
++ 41n    1.8
++ 60n    1.8
++ 61n    1.8
++ 80n    1.8
++ 81n    0
++ 100n   0
++ 101n   0
++ 120n   0
++ 121n   1.8
++ 140n   1.8
++ 141n   1.8
++ 160n   1.8
++ 161n   1.8
++ 200n   1.8
++ 201n   0
++ 250n   0
++ 251n   0
++ 300n   0
++ 301n   0
++ 350n   0
++ 351n   0
++ 400n   0
++ 401n   0
++ 450n   0
++ )
+
+VC C VGND PWL(
++ 0n     0
++ 20n    0
++ 21n    1.8
++ 40n    1.8
++ 41n    0
++ 60n    0
++ 61n    1.8
++ 80n    1.8
++ 81n    0
++ 100n   0
++ 101n   1.8
++ 120n   1.8
++ 121n   0
++ 140n   0
++ 141n   1.8
++ 160n   1.8
++ 161n   1.8
++ 200n   1.8
++ 201n   0
++ 250n   0
++ 251n   0
++ 300n   0
++ 301n   0
++ 350n   0
++ 351n   0
++ 400n   0
++ 401n   0
++ 450n   0
++ )
+
+* ============================================
+* Options de simulation
+* ============================================
+.option POST
+.option NOMOD
+.option ACCURATE
+.option METHOD=GEAR
+
+* ============================================
+* Analyse transitoire
+* ============================================
+.tran 0.01n 450n
+
+* ============================================
+* MESURES PHASE 1: Consommation statique (0-180ns)
+* Mesure au milieu de chaque état stable
+* ============================================
+
+* État 000 (A=0, B=0, C=0) -> Y=0
+.measure tran I_static_000 FIND I(VVPWR) AT=10n
+.measure tran P_static_000 PARAM='abs(I_static_000)*VDD_VAL'
+
+* État 001 (A=0, B=0, C=1) -> Y=1
+.measure tran I_static_001 FIND I(VVPWR) AT=30n
+.measure tran P_static_001 PARAM='abs(I_static_001)*VDD_VAL'
+
+* État 010 (A=0, B=1, C=0) -> Y=1
+.measure tran I_static_010 FIND I(VVPWR) AT=50n
+.measure tran P_static_010 PARAM='abs(I_static_010)*VDD_VAL'
+
+* État 011 (A=0, B=1, C=1) -> Y=0
+.measure tran I_static_011 FIND I(VVPWR) AT=70n
+.measure tran P_static_011 PARAM='abs(I_static_011)*VDD_VAL'
+
+* État 100 (A=1, B=0, C=0) -> Y=1
+.measure tran I_static_100 FIND I(VVPWR) AT=90n
+.measure tran P_static_100 PARAM='abs(I_static_100)*VDD_VAL'
+
+* État 101 (A=1, B=0, C=1) -> Y=0
+.measure tran I_static_101 FIND I(VVPWR) AT=110n
+.measure tran P_static_101 PARAM='abs(I_static_101)*VDD_VAL'
+
+* État 110 (A=1, B=1, C=0) -> Y=0
+.measure tran I_static_110 FIND I(VVPWR) AT=130n
+.measure tran P_static_110 PARAM='abs(I_static_110)*VDD_VAL'
+
+* État 111 (A=1, B=1, C=1) -> Y=1
+.measure tran I_static_111 FIND I(VVPWR) AT=150n
+.measure tran P_static_111 PARAM='abs(I_static_111)*VDD_VAL'
+
+* Consommation statique moyenne
+.measure tran P_static_avg PARAM='(P_static_000+P_static_001+P_static_010+P_static_011+P_static_100+P_static_101+P_static_110+P_static_111)/8'
+
+* ============================================
+* MESURES PHASE 2: Énergie totale (200-450ns)
+* Transitions dynamiques pour mesurer l'énergie
+* ============================================
+
+* Transition 1: A 0->1 (Y 1->0) de 200ns à 250ns
+.measure tran E_total_1 INTEG I(VVPWR)*V(VPWR) FROM=200n TO=250n
+.measure tran P_total_1 PARAM='E_total_1/50n'
+
+* Transition 2: A 1->0 (Y 0->1) de 250ns à 300ns
+.measure tran E_total_2 INTEG I(VVPWR)*V(VPWR) FROM=250n TO=300n
+.measure tran P_total_2 PARAM='E_total_2/50n'
+
+* Transition 3: A 0->1 (Y 1->0) de 300ns à 350ns
+.measure tran E_total_3 INTEG I(VVPWR)*V(VPWR) FROM=300n TO=350n
+.measure tran P_total_3 PARAM='E_total_3/50n'
+
+* Transition 4: A 1->0 (Y 0->1) de 350ns à 400ns
+.measure tran E_total_4 INTEG I(VVPWR)*V(VPWR) FROM=350n TO=400n
+.measure tran P_total_4 PARAM='E_total_4/50n'
+
+* Moyenne de l'énergie totale par transition
+.measure tran E_total_avg PARAM='(E_total_1+E_total_2+E_total_3+E_total_4)/4'
+.measure tran P_total_avg PARAM='(P_total_1+P_total_2+P_total_3+P_total_4)/4'
+
+* ============================================
+* CALCUL: Consommation dynamique
+* P_dynamic = P_total - P_static
+* ============================================
+.measure tran P_dynamic_avg PARAM='P_total_avg - P_static_avg'
+
+* Énergie dynamique par transition
+.measure tran E_dynamic_avg PARAM='E_total_avg - (P_static_avg*50n)'
+
+* ============================================
+* Commandes de contrôle
+* ============================================
+.control
+run
+
+* Affichage des signaux
+plot V(A)+6 V(B)+4 V(C)+2 V(Y) title 'Dynamic Power - Transitions'
+plot I(VVPWR)*1e6 title 'Supply Current (uA)'
+plot I(VVPWR)*V(VPWR)*1e9 title 'Instantaneous Power (nW)'
+
+* Affichage des résultats
+echo "=========================================="
+echo "DYNAMIC POWER CHARACTERIZATION - XOR3_1"
+echo "=========================================="
+echo "Process: tt | Voltage: 1.8V | Temperature: 25°C"
+echo "Capacitive Load: 10fF | Slew Time: 0.1ns"
+echo "=========================================="
+echo ""
+echo "--- STATIC POWER (Phase 1) ---"
+print P_static_000 P_static_001 P_static_010 P_static_011
+print P_static_100 P_static_101 P_static_110 P_static_111
+print P_static_avg
+echo ""
+echo "--- TOTAL ENERGY (Phase 2) ---"
+print E_total_1 E_total_2 E_total_3 E_total_4
+print E_total_avg P_total_avg
+echo ""
+echo "--- DYNAMIC POWER ---"
+print P_dynamic_avg E_dynamic_avg
+echo ""
+echo "=========================================="
+echo "SUMMARY:"
+echo "Static Power (avg):  " P_static_avg " W"
+echo "Total Power (avg):   " P_total_avg " W"
+echo "Dynamic Power (avg): " P_dynamic_avg " W"
+echo "Energy per transition: " E_dynamic_avg " J"
+echo "=========================================="
+
+* Sauvegarde
+write dynamic_xor3_1.raw
+
+.endc
+
+.end
