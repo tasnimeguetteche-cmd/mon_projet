@@ -1,0 +1,129 @@
+* Caractérisation du délai - xor3_1
+.title Delay Characterization xor3_1
+
+* ============================================
+* Inclusion des modèles de transistors (IMPORTANT!)
+* ============================================
+* Modèles des transistors primitifs
+.lib "~/.ciel/sky130A/libs.tech/ngspice/sky130.lib.spice" tt
+
+* Puis inclure les cellules standard
+.include "~/.ciel/sky130A/libs.ref/sky130_fd_sc_hd/spice/sky130_fd_sc_hd.spice"
+
+* ============================================
+* Paramètres de simulation
+* ============================================
+.param VDD_VAL = 1.8
+.param LOAD_CAP = 10f
+.param SLEW_TIME = 0.1n
+.temp 25
+
+* ============================================
+* Alimentations - Utiliser VPWR et VGND (noms du PDK)
+* ============================================
+.global VPWR VGND VNB VPB
+VVPWR VPWR 0 DC {VDD_VAL}
+VVGND VGND 0 DC 0
+* Body bias (nécessaire pour sky130)
+VVNB VNB 0 DC 0
+VVPB VPB 0 DC {VDD_VAL}
+
+* ============================================
+* Instance de la cellule XOR3_1
+* Pinout: A B C VGND VNB VPB VPWR Y
+* ============================================
+X1 A B C VGND VNB VPB VPWR Y sky130_fd_sc_hd__xor3_1
+
+* ============================================
+* Capacité de charge sur la sortie
+* ============================================
+CL Y VGND {LOAD_CAP}
+
+* ============================================
+* Stimulus - Transition sur l'entrée A
+* B=0, C=0 donc Y=A (XOR avec deux 0)
+* ============================================
+VA A VGND PULSE(0 {VDD_VAL} 1n {SLEW_TIME} {SLEW_TIME} 9n 20n)
+VB B VGND DC 0
+VC C VGND DC 0
+
+* ============================================
+* Options de simulation
+* ============================================
+.option POST
+.option NOMOD
+.option INGOLD=1
+.option ACCURATE
+.option METHOD=GEAR
+
+* ============================================
+* Analyse transitoire
+* ============================================
+.tran 0.01n 25n
+
+* ============================================
+* Mesures de délai
+* ============================================
+
+* Délai de propagation tpLH (Low to High) - 50% à 50%
+.measure tran tpLH 
++ TRIG V(A) VAL={VDD_VAL/2} RISE=1
++ TARG V(Y) VAL={VDD_VAL/2} RISE=1
+
+* Délai de propagation tpHL (High to Low) - 50% à 50%
+.measure tran tpHL
++ TRIG V(A) VAL={VDD_VAL/2} FALL=1
++ TARG V(Y) VAL={VDD_VAL/2} FALL=1
+
+* Délai moyen
+.measure tran tpd PARAM='(tpLH+tpHL)/2'
+
+* Temps de montée (10% à 90%)
+.measure tran trise
++ TRIG V(Y) VAL={VDD_VAL*0.1} RISE=1
++ TARG V(Y) VAL={VDD_VAL*0.9} RISE=1
+
+* Temps de descente (90% à 10%)
+.measure tran tfall
++ TRIG V(Y) VAL={VDD_VAL*0.9} FALL=1
++ TARG V(Y) VAL={VDD_VAL*0.1} FALL=1
+
+* Temps de transition moyen
+.measure tran tslew PARAM='(trise+tfall)/2'
+
+* ============================================
+* Commandes de contrôle
+* ============================================
+.control
+run
+
+* Affichage des courbes
+set hcopydevtype=postscript
+set color0=white
+set color1=black
+
+plot V(A) V(Y) title 'Delay Characterization XOR3_1'
+plot V(A) V(Y) V(B)+2 V(C)+4 title 'All signals'
+
+* Affichage des résultats
+print tpLH tpHL tpd
+print trise tfall tslew
+
+* Mesure du courant moyen
+meas tran Iavg_vpwr AVG I(VVPWR) from=0n to=25n
+meas tran Imax_vpwr MAX I(VVPWR) from=0n to=25n
+
+print Iavg_vpwr Imax_vpwr
+
+* Sauvegarde des résultats
+write delay_xor3_1.raw
+
+echo "=========================================="
+echo "Delay Characterization Results:"
+echo "=========================================="
+print tpLH tpHL tpd trise tfall
+echo "=========================================="
+
+.endc
+
+.end
