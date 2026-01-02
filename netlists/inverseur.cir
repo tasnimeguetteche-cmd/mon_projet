@@ -1,0 +1,83 @@
+* Inverseur 
+.title Inverter 
+
+.include "params.spice"
+
+
+.param VDD_VAL = 1.8
+
+* ============================================
+* Alimentations
+* ============================================
+* Source nommée VDD pour correspondre aux mesures [cite: 11]
+VDD vdd 0 DC {VDD_VAL}
+
+* ============================================
+* INVERSEUR CMOS
+* ============================================
+.model nfet_simple nmos (level=54 version=4.5)
+.model pfet_simple pmos (level=54 version=4.5)
+
+MN1 out in 0 0 nfet_simple W={W_N} L={L}
+MP1 out in vdd vdd pfet_simple W={W_P} L={L}
+
+CL out 0 10f
+
+* ============================================
+* Signal d'entrée
+* ============================================
+VIN in 0 PWL(
++ 0ns     0
++ 1ns     0
++ 1.02ns  {VDD_VAL}
++ 3ns     {VDD_VAL}
++ 3.02ns  0
++ 5ns     0
++ )
+
+* ============================================
+* Analyse transitoire
+* ============================================
+.tran 0.01n 5.5n
+
+* ============================================
+* MESURES 
+* ============================================
+
+* 1. DÉLAIS (Déjà fonctionnels dans vos logs)
+.measure tran tpLH TRIG v(in) VAL={VDD_VAL/2} FALL=1 TARG v(out) VAL={VDD_VAL/2} RISE=1
+.measure tran tpHL TRIG v(in) VAL={VDD_VAL/2} RISE=1 TARG v(out) VAL={VDD_VAL/2} FALL=1
+.measure tran tp PARAM='(tpLH + tpHL) / 2'
+
+* 2. PUISSANCE STATIQUE 
+* On mesure le courant à un instant stable
+.measure tran I_stat FIND I(VDD) AT=0.5n
+.measure tran p_static PARAM='abs(I_stat)*VDD_VAL'
+
+* 3. PUISSANCE DYNAMIQUE 
+* Étape A: Intégrer uniquement le courant pour obtenir la charge Q (évite l'erreur de vecteur)
+.measure tran Q_total INTEG I(VDD) FROM=1n TO=5n
+* Étape B: Calculer l'énergie totale (E = Q * VDD) 
+.measure tran E_total PARAM='abs(Q_total)*VDD_VAL'
+* Étape C: Puissance moyenne totale sur la période (P = E / T) 
+.measure tran p_total PARAM='E_total/4n'
+* Étape D: Puissance dynamique pure (P_dyn = P_tot - P_stat) 
+.measure tran p_dynamic PARAM='abs(p_total - p_static)'
+
+* ============================================
+* Script de contrôle
+* ============================================
+.control
+    run
+    
+    echo "=========================================="
+    echo "RÉSULTATS DE SIMULATION"
+    echo "=========================================="
+    print tp p_static p_dynamic
+    echo "=========================================="
+    
+    set wr_singlescale
+    wrdata output.txt v(in) v(out) I(VDD)
+    quit
+.endc
+.end
