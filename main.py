@@ -1,10 +1,60 @@
 from environment import InverterEnv
 from rl_agent import QAgent
 import numpy as np
+import os
+import sys
+
+def choisir_porte():
+    """
+    Scanne le dossier 'netlists', liste les fichiers .cir disponibles 
+    et demande à l'utilisateur d'en choisir un.
+    """
+    dossier_netlists = "netlists"
+    
+    # Vérification que le dossier existe
+    if not os.path.exists(dossier_netlists):
+        print(f"Erreur : Le dossier '{dossier_netlists}' est introuvable.")
+        sys.exit(1)
+
+    # Récupérer tous les fichiers .cir (exclut params.spice et autres fichiers)
+    fichiers = [f for f in os.listdir(dossier_netlists) if f.endswith('.cir')]
+    
+    # On retire l'extension pour l'affichage et on trie
+    portes_dispo = sorted([os.path.splitext(f)[0] for f in fichiers])
+
+    # Si aucune porte n'est trouvée
+    if not portes_dispo:
+        print(f"Aucun fichier .cir trouvé dans '{dossier_netlists}'.")
+        sys.exit(1)
+
+    # --- AFFICHAGE MENU ---
+    print("\n" + "="*40)
+    print("Quelle fonction logique souhaitez vous choisir ?")
+    print("="*40)
+    
+    for i, porte in enumerate(portes_dispo):
+        print(f"  {i + 1}. {porte}")
+    
+    print("-" * 40)
+
+    while True:
+        try:
+            choix = input(f"Votre choix (1-{len(portes_dispo)}) : ")
+            idx = int(choix) - 1
+            if 0 <= idx < len(portes_dispo):
+                gate_name = portes_dispo[idx]
+                print(f"\nConfiguration chargée : {gate_name.upper()}")
+                return gate_name
+            else:
+                print("Numéro invalide, réessayez.")
+        except ValueError:
+            print("Entrée invalide, veuillez entrer un numéro.")
 
 def main():
+    selected_gate = choisir_porte()
     
-    env = InverterEnv(gate_name="ET") 
+    #Initialisation de l'environnement avec la porte choisie
+    env = InverterEnv(gate_name=selected_gate) 
     agent = QAgent()
     
     n_episodes = 100
@@ -29,7 +79,7 @@ def main():
         for step_idx in range(steps_per_episode):
             a = agent.act(s)
             
-            # CORRECTION : On passe les 3 arguments attendus par environment.py
+            # On passe les 3 arguments attendus par environment.py
             sn, r, perf = env.step(a, step_idx, ep)
             
             agent.learn(s, a, r, sn)
@@ -46,7 +96,7 @@ def main():
         if ep % 20 == 0:
             print(f"Episode {ep:4d} | Epsilon: {agent.eps:.2f} | Best Reward: {best_reward:.2f}")
 
-    # --- AFFICHAGE FINAL DES RÉSULTATS ---
+    #Affichage des résultats
     print("\n" + "="*60)
     print(f"OPTIMISATION TERMINEE POUR : {env.gate_name.upper()}")
     print("="*60)

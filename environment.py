@@ -5,20 +5,18 @@ import numpy as np
 
 class InverterEnv:
     def __init__(self, gate_name="ET"):
-        # --- CONFIGURATION DES CHEMINS ---
-        # On définit le dossier des netlists relatif au script python
+        #On définit le dossier des netlists relatif au script python
         self.netlist_dir = "netlists"
         self.gate_name = gate_name
         # Le fichier template doit être dans netlists/
         self.template_path = os.path.join(self.netlist_dir, f"{gate_name}.cir")
         self.params_path = os.path.join(self.netlist_dir, "params.spice")
-
-        # --- LIMITES DE RECHERCHE ---
         
+        #Valeurs limites pour l'excursion
         self.w_n_min, self.w_n_max = 0.2e-6, 5.0e-6 
         self.w_p_min, self.w_p_max = 0.2e-6, 8.0e-6
         
-        # Valeurs initiales
+        #Valeurs initiales
         self.w_n = 0.5e-6
         self.w_p = 1.0e-6
         self.l = 0.15e-6
@@ -51,7 +49,7 @@ class InverterEnv:
             perf = self.simulate()
             self.cache[config_key] = perf
         
-        # --- CALCUL DU REWARD (Optimisé pour le ratio) ---
+        #Calcul de la récompense
         
         d_lh = perf['tpLH'] * 1e12  # ps (Montée - PMOS)
         d_hl = perf['tpHL'] * 1e12  # ps (Descente - NMOS)
@@ -63,26 +61,19 @@ class InverterEnv:
         
 
         reward = - (1 * d_avg  + 0.5 * p_dyn_val + 0.1 * p_stat_val)
-        
-        
-     
 
-        # Affichage compact pour le debug
-        # print(f"  Ratio={self.w_p/self.w_n:.2f} | Asym={asymmetry:.1f}ps | R={reward:.1f}")
         
         return self.get_state(), reward, perf
 
     def simulate(self):
-        # 1. Écriture des paramètres DANS le dossier netlists
+        #Écriture des paramètres dans le fichier params.spice
         with open(self.params_path, "w") as f:
             f.write(f".param VDD=1.8\n")
             f.write(f".param L={self.l}\n")
             f.write(f".param W_N={self.w_n}\n")
             f.write(f".param W_P={self.w_p}\n")
         
-        # 2. Lancement NGSPICE
-        # IMPORTANT: On garde le CWD (Current Working Directory) à la racine du projet
-        # NGSPICE trouvera params.spice car il est dans le même dossier que le .cir
+        #Lancement NGSPICE
         cmd = ["ngspice", "-b", self.template_path]
         
         try:
@@ -92,7 +83,7 @@ class InverterEnv:
             print("ERREUR: ngspice n'est pas installé ou le chemin est incorrect.")
             return {'tpLH': 1e-8, 'tpHL': 1e-8, 'power_static': 1e-3, 'power_dynamic': 1e-3}
         
-        # 3. Parsing (Récupération tpLH et tpHL séparés)
+        #Parsing (Récupération tpLH et tpHL séparés)
         try:
             # tpLH
             tplh_match = re.search(r"tplh\s*=\s*([0-9.eE+-]+)", output, re.IGNORECASE)
