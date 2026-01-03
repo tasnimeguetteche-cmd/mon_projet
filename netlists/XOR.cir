@@ -1,0 +1,82 @@
+* Test Porte XOR
+.title Porte XOR
+
+.include "params.spice"
+
+.param VDD_VAL = 1.8
+
+* ============================================
+* Alimentations
+* ============================================
+VVDD vdd 0 DC {VDD_VAL}
+
+* ============================================
+* PORTE XOR CMOS (Logic: Out = A xor B)
+* CONFIGURATION TEST: B relié à GND (0). 
+* La porte agit comme un BUFFER (Out = A).
+* ============================================
+.model nfet_simple nmos (level=54 version=4.5)
+.model pfet_simple pmos (level=54 version=4.5)
+
+* Création des signaux inverses internes
+* Inv A (in -> n_inv_a)
+MNinvA n_inv_a in 0 0       nfet_simple W={W_N} L={L}
+MPinvA n_inv_a in vdd vdd   pfet_simple W={W_P} L={L}
+
+* Inv B (0 -> n_inv_b). Note: B est à 0, donc n_inv_b sera à VDD.
+MNinvB n_inv_b 0 0 0        nfet_simple W={W_N} L={L}
+MPinvB n_inv_b 0 vdd vdd    pfet_simple W={W_P} L={L}
+
+* --- Coeur XOR ---
+* Branche 1 (A=1, B=0 -> Out=1) : Pass-transistor logic simplifiée ou CMOS complet
+* Utilisation CMOS Transmissions Gates pour robustesse
+
+* Transmission Gate 1 (Laisse passer A si B=0)
+* PMOS (gate=B=0) // NMOS (gate=invB=1)
+MPtg1 out 0       in vdd pfet_simple W={W_P} L={L}
+MNtg1 out n_inv_b in 0   nfet_simple W={W_N} L={L}
+
+* Transmission Gate 2 (Laisse passer invA si B=1) -> Bloquée ici car B=0
+* PMOS (gate=invB) // NMOS (gate=B)
+MPtg2 out n_inv_b n_inv_a vdd pfet_simple W={W_P} L={L}
+MNtg2 out 0       n_inv_a 0   nfet_simple W={W_N} L={L}
+
+* Charge
+CL out 0 10f
+
+* ============================================
+* Signal d'entrée
+* ============================================
+VIN in 0 PWL(
++ 0ns      0
++ 1ns      0
++ 1.02ns  {VDD_VAL}
++ 3ns     {VDD_VAL}
++ 3.02ns  0
++ 5ns     0
++ )
+
+* ============================================
+* Analyse et MESURES (Type Non-Inversant)
+* ============================================
+.tran 0.01n 5.5n
+
+* [cite_start]Mesures Type Buffer (in rise -> out rise) [cite: 4]
+.measure tran tpLH TRIG v(in) VAL={VDD_VAL/2} RISE=1 TARG v(out) VAL={VDD_VAL/2} RISE=1
+.measure tran tpHL TRIG v(in) VAL={VDD_VAL/2} FALL=1 TARG v(out) VAL={VDD_VAL/2} FALL=1
+.measure tran tp PARAM='(tpLH + tpHL) / 2'
+
+* Puissance
+.measure tran I_stat FIND I(VVDD) AT=0.5n
+.measure tran p_static PARAM='abs(I_stat)*VDD_VAL'
+.measure tran Q_total INTEG I(VVDD) FROM=1n TO=5n
+.measure tran E_total PARAM='abs(Q_total)*VDD_VAL'
+.measure tran p_total PARAM='E_total/4n'
+.measure tran p_dynamic PARAM='abs(p_total - p_static)'
+
+.control
+    run
+    print tp p_static p_dynamic
+    quit
+.endc
+.end

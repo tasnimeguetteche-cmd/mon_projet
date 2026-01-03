@@ -1,0 +1,67 @@
+* Test Porte NAND
+.title Porte NAND
+
+.include "params.spice"
+
+.param VDD_VAL = 1.8
+
+* ============================================
+* Alimentations
+* ============================================
+VDD vdd 0 DC {VDD_VAL}
+
+* ============================================
+* PORTE NAND CMOS
+* ============================================
+.model nfet_simple nmos (level=54 version=4.5)
+.model pfet_simple pmos (level=54 version=4.5)
+
+* Entrées A et B reliées à 'in'
+
+* NMOS en SÉRIE (Bas)
+MN0 out      in node_int 0 nfet_simple W={W_N} L={L}
+MN1 node_int in 0        0 nfet_simple W={W_N} L={L}
+
+* PMOS en PARALLÈLE (Haut)
+MP0 out in vdd vdd pfet_simple W={W_P} L={L}
+MP1 out in vdd vdd pfet_simple W={W_P} L={L}
+
+* Charge
+CL out 0 10f
+
+* ============================================
+* Signal d'entrée
+* ============================================
+VIN in 0 PWL(
++ 0ns     0
++ 1ns     0
++ 1.02ns  {VDD_VAL}
++ 3ns     {VDD_VAL}
++ 3.02ns  0
++ 5ns     0
++ )
+
+* ============================================
+* Analyse et MESURES (Type Inversant)
+* ============================================
+.tran 0.01n 5.5n
+
+* [cite_start]Mesures adaptées pour une logique inversante (in rise -> out fall) [cite: 6]
+.measure tran tpLH TRIG v(in) VAL={VDD_VAL/2} FALL=1 TARG v(out) VAL={VDD_VAL/2} RISE=1
+.measure tran tpHL TRIG v(in) VAL={VDD_VAL/2} RISE=1 TARG v(out) VAL={VDD_VAL/2} FALL=1
+.measure tran tp PARAM='(tpLH + tpHL) / 2'
+
+* Puissance (mesurée sur VDD comme dans inverseur.cir)
+.measure tran I_stat FIND I(VDD) AT=0.5n
+.measure tran p_static PARAM='abs(I_stat)*VDD_VAL'
+.measure tran Q_total INTEG I(VDD) FROM=1n TO=5n
+.measure tran E_total PARAM='abs(Q_total)*VDD_VAL'
+.measure tran p_total PARAM='E_total/4n'
+.measure tran p_dynamic PARAM='abs(p_total - p_static)'
+
+.control
+    run
+    print tp p_static p_dynamic
+    quit
+.endc
+.end
