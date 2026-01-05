@@ -20,14 +20,6 @@ Le projet repose sur une boucle complète d’optimisation :
 4. Les performances électriques sont extraites.
 5. Un agent de Reinforcement Learning évalue ces performances via une fonction de récompense.
 6. Le processus est répété jusqu’à convergence vers une configuration optimale.
-
-## Description des fichiers
-
-### `environment.py`
-
-Fichier central du projet.  
-Il assure l’interface entre le code Python et le simulateur physique **NGSpice**.
-
 #### Fonctionnalités principales
 
 - lancement des simulations SPICE ;
@@ -37,6 +29,14 @@ Il assure l’interface entre le code Python et le simulateur physique **NGSpice
   - du délai de propagation ;
   - de la consommation statique ;
   - de la consommation dynamique.
+
+## Description des fichiers
+
+### `environment.py`
+
+Fichier central du projet.  
+Il assure l’interface entre le code Python et le simulateur physique **NGSpice**.
+
 
 ### `rl_agent.py`
 
