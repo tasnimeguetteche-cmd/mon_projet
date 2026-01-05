@@ -20,6 +20,9 @@ Le projet repose sur une boucle complète d’optimisation :
 4. Les performances électriques sont extraites.
 5. Un agent de Reinforcement Learning évalue ces performances via une fonction de récompense.
 6. Le processus est répété jusqu’à convergence vers une configuration optimale.
+
+
+---
 #### Fonctionnalités principales
 
 - lancement des simulations SPICE ;
@@ -29,6 +32,8 @@ Le projet repose sur une boucle complète d’optimisation :
   - du délai de propagation ;
   - de la consommation statique ;
   - de la consommation dynamique.
+ 
+---
 
 ## Description des fichiers
 
@@ -43,7 +48,7 @@ Il assure l’interface entre le code Python et le simulateur physique **NGSpice
 Contient l’implémentation de l’agent d’apprentissage par renforcement.  
 L’agent repose sur une **Q-Table** permettant d’associer une valeur à chaque couple état–action.
 
----
+
 
 ### `main.py`
 
@@ -68,6 +73,8 @@ Chaque fichier correspond à une porte logique implémentée au niveau transisto
 - Python **3.12** ou **3.13**
 - **NGSpice** installé
 - Accès Internet pour le téléchargement des dépendances et du PDK
+
+---
 
 ##  Spécification importante — Chemins des bibliothèques
 
