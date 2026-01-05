@@ -69,7 +69,7 @@ Chaque fichier correspond à une porte logique implémentée au niveau transisto
 - **NGSpice** installé
 - Accès Internet pour le téléchargement des dépendances et du PDK
 
-## ⚠️ Spécification importante — Chemins des bibliothèques
+##  Spécification importante — Chemins des bibliothèques
 
 Les netlists SPICE utilisent des directives `.include` pointant vers les bibliothèques du PDK.
 
